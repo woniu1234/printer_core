@@ -1,0 +1,6 @@
+jdk:
+  - openjdk11
+
+install:
+  - ./gradlew :printerLib:build :printerLib:publishToMavenLocal
+  - find . -name "*.aar"
