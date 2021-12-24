@@ -1,6 +1,7 @@
 package com.lst.printerlib.printerface
 
 import android.content.Context
+import com.lst.printerlib.DeviceInfo
 import com.lst.printerlib.utils.PrinterDev
 import com.lst.printerlib.utils.RoundQueue
 
@@ -17,9 +18,9 @@ interface IMyBinder {
         var1: Context,
         portType: PrinterDev.PortType,
         callback: DeviceFoundCallback
-    ): MutableList<String>?
+    ): MutableList<DeviceInfo>?
 
-    fun getBtAvailableDevice(): MutableList<String>
+    fun getBtAvailableDevice(): MutableList<DeviceInfo>
 
     fun write(var1: ByteArray?, var2: TaskCallback)
 
@@ -30,4 +31,6 @@ interface IMyBinder {
     fun readBuffer(): RoundQueue<ByteArray?>?
 
     fun read(var1: TaskCallback)
+
+    fun cancelCancelDiscover()
 }

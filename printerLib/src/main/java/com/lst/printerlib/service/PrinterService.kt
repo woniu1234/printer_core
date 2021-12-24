@@ -53,8 +53,8 @@ class PrinterService : Service() {
 
     inner class MyBinder : Binder(), IMyBinder {
         private var mBluetoothAdapter: BluetoothAdapter? = null
-        private var mFond: MutableList<String>? = null
-        private var mBond: MutableList<String>? = null
+        private var mFond: MutableList<DeviceInfo>? = null
+        private var mBond: MutableList<DeviceInfo>? = null
         private var mPortType: PrinterDev.PortType? = null
         private val mReceiver = object : BroadcastReceiver() {
             override fun onReceive(p0: Context?, p1: Intent?) {
@@ -65,14 +65,14 @@ class PrinterService : Service() {
                                 ?: return
                         if (!device.name.isNullOrEmpty()) {
                             mFond?.forEach { found ->
-                                if (found.split("\n").last() == device.address) {
+                                if (found.deviceAddress == device.address) {
                                     return
                                 }
                             }
-                            mFond?.add("${device.name}\n${device.address}")
                             val deviceInfo = DeviceInfo()
                             deviceInfo.deviceName = device.name
                             deviceInfo.deviceAddress = device.address
+                            mFond?.add(deviceInfo)
                             mDeviceFoundCallback?.deviceFoundCallback(deviceInfo)
                         }
                     }
@@ -133,7 +133,7 @@ class PrinterService : Service() {
             var1: Context,
             portType: PrinterDev.PortType,
             callback: DeviceFoundCallback
-        ): MutableList<String>? {
+        ): MutableList<DeviceInfo>? {
             this.mFond = mutableListOf()
             this.mBond = mutableListOf()
             mDeviceFoundCallback = callback
@@ -159,7 +159,10 @@ class PrinterService : Service() {
                             val it = pairedDevice.iterator()
                             while (it.hasNext()) {
                                 val device = it.next()
-                                mBond?.add("${device.name}\n${device.address}")
+                                val deviceInfo = DeviceInfo()
+                                deviceInfo.deviceName = device.name
+                                deviceInfo.deviceAddress = device.address
+                                mBond?.add(deviceInfo)
                             }
                         } else {
                             Looper.prepare()
@@ -189,7 +192,7 @@ class PrinterService : Service() {
             return this.mBond
         }
 
-        override fun getBtAvailableDevice(): MutableList<String> {
+        override fun getBtAvailableDevice(): MutableList<DeviceInfo> {
             this.mBluetoothAdapter?.cancelDiscovery()
             return this.mFond!!
         }
@@ -262,6 +265,10 @@ class PrinterService : Service() {
                 val msg = mPrinterDev.read()
                 Log.d("frank", "read: $msg")
             }
+        }
+
+        override fun cancelCancelDiscover() {
+            this.mBluetoothAdapter?.cancelDiscovery()
         }
 
     }
