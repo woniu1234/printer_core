@@ -37,10 +37,13 @@ class PrinterManager private constructor() {
     }
 
 
-    fun getBondDevicesList(foundCallback: DeviceFoundCallback): MutableList<String>? {
+    fun getBondDevicesList(foundCallback: DeviceFoundCallback): MutableList<DeviceInfo>? {
         return printerModel.getBondDeviceList(foundCallback)
     }
 
+    fun cancelDiscover(taskCallback: TaskCallback) {
+        printerModel.cancelDiscover(taskCallback)
+    }
 
     /**
      * @param[mac] the printer mac
