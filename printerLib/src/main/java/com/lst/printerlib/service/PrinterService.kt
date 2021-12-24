@@ -149,9 +149,10 @@ class PrinterService : Service() {
                 }
                 if (mBluetoothAdapter!!.isEnabled) {
                     if (mBluetoothAdapter!!.enable()) {
-                        if (!mBluetoothAdapter!!.isDiscovering) {
-                            mBluetoothAdapter!!.startDiscovery()
+                        if (mBluetoothAdapter!!.isDiscovering) {
+                            mBluetoothAdapter!!.cancelDiscovery()
                         }
+                        mBluetoothAdapter!!.startDiscovery()
                         val filter = IntentFilter("android.bluetooth.device.action.FOUND")
                         registerReceiver(mReceiver, filter)
                         val pairedDevice = mBluetoothAdapter!!.bondedDevices
@@ -265,10 +266,6 @@ class PrinterService : Service() {
                 val msg = mPrinterDev.read()
                 Log.d("frank", "read: $msg")
             }
-        }
-
-        override fun cancelCancelDiscover() {
-            this.mBluetoothAdapter?.cancelDiscovery()
         }
 
     }

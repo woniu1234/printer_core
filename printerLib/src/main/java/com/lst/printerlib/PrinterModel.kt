@@ -44,14 +44,6 @@ class PrinterModel constructor(private val printerManager: PrinterManager) {
         return null
     }
 
-    fun cancelDiscover(taskCallback: TaskCallback){
-        mIMyBinder?.let {
-            it.cancelCancelDiscover()
-            return
-        }
-        taskCallback.onFailed("mIMyBinder is not initialization,the lib was wrong")
-    }
-
     fun connectDeviceByMac(mac: String, taskCallback: TaskCallback) {
         mIMyBinder?.let {
             it.connectBtPort(mac, taskCallback)
