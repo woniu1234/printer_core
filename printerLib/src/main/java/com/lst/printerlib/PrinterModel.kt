@@ -52,6 +52,10 @@ class PrinterModel constructor(private val printerManager: PrinterManager) {
         taskCallback.onFailed("mIMyBinder is not initialization,the lib was wrong")
     }
 
+    fun cancelDiscover() {
+        mIMyBinder?.cancelDiscover()
+    }
+
     fun disconnected(taskCallback: TaskCallback) {
         mIMyBinder?.let {
             it.disconnectCurrentPort(taskCallback)
@@ -84,6 +88,4 @@ class PrinterModel constructor(private val printerManager: PrinterManager) {
         }
         return this
     }
-
-
 }

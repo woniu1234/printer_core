@@ -41,6 +41,10 @@ class PrinterManager private constructor() {
         return printerModel.getBondDeviceList(foundCallback)
     }
 
+    fun cancelDiscover() {
+        printerModel.cancelDiscover()
+    }
+
     /**
      * @param[mac] the printer mac
      * @param[taskCallback] the connect state by the taskCallback call

@@ -32,4 +32,6 @@ interface IMyBinder {
 
     fun read(var1: TaskCallback)
 
+    fun cancelDiscover()
+
 }

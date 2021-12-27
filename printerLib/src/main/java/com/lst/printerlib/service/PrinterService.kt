@@ -3,6 +3,7 @@ package com.lst.printerlib.service
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -24,6 +25,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.*
+import android.R.attr.name
+
+
+
 
 class PrinterService : Service() {
     private val mMyBinder = MyBinder()
@@ -138,7 +143,8 @@ class PrinterService : Service() {
             this.mBond = mutableListOf()
             mDeviceFoundCallback = callback
             if (portType == PrinterDev.PortType.Bluetooth) {
-                this.mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+                val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+                this.mBluetoothAdapter = manager.adapter
                 if (mBluetoothAdapter == null) {
                     Toast.makeText(
                         this@PrinterService,
@@ -147,48 +153,48 @@ class PrinterService : Service() {
                     ).show()
                     return null
                 }
-                if (mBluetoothAdapter!!.isEnabled) {
-                    if (mBluetoothAdapter!!.enable()) {
-                        if (mBluetoothAdapter!!.isDiscovering) {
-                            mBluetoothAdapter!!.cancelDiscovery()
-                        }
-                        mBluetoothAdapter!!.startDiscovery()
-                        val filter = IntentFilter("android.bluetooth.device.action.FOUND")
-                        registerReceiver(mReceiver, filter)
-                        val pairedDevice = mBluetoothAdapter!!.bondedDevices
-                        if (!pairedDevice.isNullOrEmpty()) {
-                            val it = pairedDevice.iterator()
-                            while (it.hasNext()) {
-                                val device = it.next()
-                                val deviceInfo = DeviceInfo()
-                                deviceInfo.deviceName = device.name
-                                deviceInfo.deviceAddress = device.address
-                                mBond?.add(deviceInfo)
+                mBluetoothAdapter?.let {
+                    if (it.isEnabled) {
+                        if (it.enable()) {
+                            if (it.isDiscovering) {
+                                it.cancelDiscovery()
+                            }
+                            it.startDiscovery()
+                            val filter = IntentFilter("android.bluetooth.device.action.FOUND")
+                            registerReceiver(mReceiver, filter)
+                            val pairedDevice = it.bondedDevices
+                            if (!pairedDevice.isNullOrEmpty()) {
+                                val iterator = pairedDevice.iterator()
+                                while (iterator.hasNext()) {
+                                    val device = iterator.next()
+                                    val deviceInfo = DeviceInfo()
+                                    deviceInfo.deviceName = device.name
+                                    deviceInfo.deviceAddress = device.address
+                                    mBond?.add(deviceInfo)
+                                }
+                            } else {
+                                Looper.prepare()
+                                Toast.makeText(
+                                    this@PrinterService, "no paired device",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                Looper.loop()
                             }
                         } else {
-                            Looper.prepare()
                             Toast.makeText(
                                 this@PrinterService,
-                                "no paired device",
+                                "Bluetooth is not enable !\n",
                                 Toast.LENGTH_SHORT
                             ).show()
-                            Looper.loop()
                         }
                     } else {
                         Toast.makeText(
                             this@PrinterService,
-                            "Bluetooth is not enable !\n",
+                            "Bluetooth adapter is not enabled !\n",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                } else {
-                    Toast.makeText(
-                        this@PrinterService,
-                        "Bluetooth adapter is not enabled !\n",
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
-
             }
             return this.mBond
         }
@@ -265,6 +271,14 @@ class PrinterService : Service() {
             mViewModelScope.launch {
                 val msg = mPrinterDev.read()
                 Log.d("frank", "read: $msg")
+            }
+        }
+
+        override fun cancelDiscover() {
+            mBluetoothAdapter?.let {
+                if (it.isDiscovering) {
+                    it.cancelDiscovery()
+                }
             }
         }
 
