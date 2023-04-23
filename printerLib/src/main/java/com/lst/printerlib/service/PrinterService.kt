@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -67,11 +68,26 @@ class PrinterService : Service() {
                         val device =
                             it.getParcelableExtra<BluetoothDevice>("android.bluetooth.device.extra.DEVICE")
                                 ?: return
-                        if (ActivityCompat.checkSelfPermission(
-                                this@PrinterService,
-                                Manifest.permission.BLUETOOTH_CONNECT
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            if (ActivityCompat.checkSelfPermission(
+                                    this@PrinterService,
+                                    Manifest.permission.BLUETOOTH_CONNECT
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                if (!device.name.isNullOrEmpty()) {
+                                    mFond.forEach { found ->
+                                        if (found.deviceAddress == device.address) {
+                                            return
+                                        }
+                                    }
+                                    val deviceInfo = DeviceInfo()
+                                    deviceInfo.deviceName = device.name
+                                    deviceInfo.deviceAddress = device.address
+                                    mFond.add(deviceInfo)
+                                    mDeviceFoundCallback?.deviceFoundCallback(deviceInfo)
+                                }
+                            }
+                        } else {
                             if (!device.name.isNullOrEmpty()) {
                                 mFond.forEach { found ->
                                     if (found.deviceAddress == device.address) {
@@ -158,12 +174,12 @@ class PrinterService : Service() {
                 }
                 mBluetoothAdapter?.let {
                     if (it.isEnabled) {
-                        if (ActivityCompat.checkSelfPermission(
-                                this@PrinterService,
-                                Manifest.permission.BLUETOOTH_CONNECT
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            if (it.enable()) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            if (ActivityCompat.checkSelfPermission(
+                                    this@PrinterService,
+                                    Manifest.permission.BLUETOOTH_CONNECT
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
                                 if (it.isDiscovering) {
                                     it.cancelDiscovery()
                                 }
@@ -188,16 +204,35 @@ class PrinterService : Service() {
                                 }
                             } else {
                                 PrintToastUtils.show(
-                                    "该设备没有蓝牙，不支持此功能",
+                                    "没有蓝牙连接权限，请退出重试",
                                     this@PrinterService
                                 )
                             }
                         } else {
-                            PrintToastUtils.show(
-                                "没有蓝牙连接权限，请退出重试",
-                                this@PrinterService
-                            )
+                            if (it.isDiscovering) {
+                                it.cancelDiscovery()
+                            }
+                            it.startDiscovery()
+                            val filter = IntentFilter("android.bluetooth.device.action.FOUND")
+                            registerReceiver(mReceiver, filter)
+                            val pairedDevice = it.bondedDevices
+                            if (!pairedDevice.isNullOrEmpty()) {
+                                val iterator = pairedDevice.iterator()
+                                while (iterator.hasNext()) {
+                                    val device = iterator.next()
+                                    val deviceInfo = DeviceInfo()
+                                    deviceInfo.deviceName = device.name
+                                    deviceInfo.deviceAddress = device.address
+                                    mBond?.add(deviceInfo)
+                                }
+                            } else {
+                                PrintToastUtils.show(
+                                    "该设备没有蓝牙，不支持此功能",
+                                    this@PrinterService
+                                )
+                            }
                         }
+
                     } else {
                         PrintToastUtils.show("该设备没有蓝牙，不支持此功能", this@PrinterService)
                     }
@@ -207,11 +242,16 @@ class PrinterService : Service() {
         }
 
         override fun getBtAvailableDevice(): MutableList<DeviceInfo> {
-            if (ActivityCompat.checkSelfPermission(
-                    this@PrinterService,
-                    Manifest.permission.BLUETOOTH_SCAN
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ActivityCompat.checkSelfPermission(
+                        this@PrinterService,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    this.mBluetoothAdapter?.cancelDiscovery()
+                    return this.mFond
+                }
+            } else {
                 this.mBluetoothAdapter?.cancelDiscovery()
                 return this.mFond
             }
@@ -292,15 +332,22 @@ class PrinterService : Service() {
 
         override fun cancelDiscover() {
             mBluetoothAdapter?.let {
-                if (ActivityCompat.checkSelfPermission(
-                        this@PrinterService,
-                        Manifest.permission.BLUETOOTH_SCAN
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (ActivityCompat.checkSelfPermission(
+                            this@PrinterService,
+                            Manifest.permission.BLUETOOTH_SCAN
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        if (it.isDiscovering) {
+                            it.cancelDiscovery()
+                        }
+                    }
+                } else {
                     if (it.isDiscovering) {
                         it.cancelDiscovery()
                     }
                 }
+
             }
         }
 
