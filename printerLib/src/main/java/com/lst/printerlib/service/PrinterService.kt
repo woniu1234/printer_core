@@ -1,5 +1,6 @@
 package com.lst.printerlib.service
 
+import android.Manifest
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -26,8 +27,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.*
 import android.R.attr.name
-
-
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import com.lst.printerlib.utils.PrintToastUtils
 
 
 class PrinterService : Service() {
@@ -96,6 +98,7 @@ class PrinterService : Service() {
                             mIsConnected = true
                             var2.onSucceed()
                         }
+
                         else -> {
                             var2.onFailed("Bluetooth connected Failed")
                         }
@@ -116,6 +119,7 @@ class PrinterService : Service() {
                             }
                             var1.onSucceed()
                         }
+
                         else -> {
                             var1.onFailed("Bluetooth disconnected failed")
                         }
@@ -146,53 +150,53 @@ class PrinterService : Service() {
                 val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
                 this.mBluetoothAdapter = manager.adapter
                 if (mBluetoothAdapter == null) {
-                    Toast.makeText(
-                        this@PrinterService,
-                        "Device didn't support bluetooth !\n",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    PrintToastUtils.show("该设备没有蓝牙，不支持此功能", this@PrinterService)
                     return null
                 }
                 mBluetoothAdapter?.let {
                     if (it.isEnabled) {
-                        if (it.enable()) {
-                            if (it.isDiscovering) {
-                                it.cancelDiscovery()
-                            }
-                            it.startDiscovery()
-                            val filter = IntentFilter("android.bluetooth.device.action.FOUND")
-                            registerReceiver(mReceiver, filter)
-                            val pairedDevice = it.bondedDevices
-                            if (!pairedDevice.isNullOrEmpty()) {
-                                val iterator = pairedDevice.iterator()
-                                while (iterator.hasNext()) {
-                                    val device = iterator.next()
-                                    val deviceInfo = DeviceInfo()
-                                    deviceInfo.deviceName = device.name
-                                    deviceInfo.deviceAddress = device.address
-                                    mBond?.add(deviceInfo)
+                        if (ActivityCompat.checkSelfPermission(
+                                this@PrinterService,
+                                Manifest.permission.BLUETOOTH_CONNECT
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            if (it.enable()) {
+                                if (it.isDiscovering) {
+                                    it.cancelDiscovery()
+                                }
+                                it.startDiscovery()
+                                val filter = IntentFilter("android.bluetooth.device.action.FOUND")
+                                registerReceiver(mReceiver, filter)
+                                val pairedDevice = it.bondedDevices
+                                if (!pairedDevice.isNullOrEmpty()) {
+                                    val iterator = pairedDevice.iterator()
+                                    while (iterator.hasNext()) {
+                                        val device = iterator.next()
+                                        val deviceInfo = DeviceInfo()
+                                        deviceInfo.deviceName = device.name
+                                        deviceInfo.deviceAddress = device.address
+                                        mBond?.add(deviceInfo)
+                                    }
+                                } else {
+                                    PrintToastUtils.show(
+                                        "该设备没有蓝牙，不支持此功能",
+                                        this@PrinterService
+                                    )
                                 }
                             } else {
-                                Looper.prepare()
-                                Toast.makeText(
-                                    this@PrinterService, "no paired device",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                Looper.loop()
+                                PrintToastUtils.show(
+                                    "该设备没有蓝牙，不支持此功能",
+                                    this@PrinterService
+                                )
                             }
                         } else {
-                            Toast.makeText(
-                                this@PrinterService,
-                                "Bluetooth is not enable !\n",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            PrintToastUtils.show(
+                                "没有蓝牙连接权限，请退出重试",
+                                this@PrinterService
+                            )
                         }
                     } else {
-                        Toast.makeText(
-                            this@PrinterService,
-                            "Bluetooth adapter is not enabled !\n",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        PrintToastUtils.show("该设备没有蓝牙，不支持此功能", this@PrinterService)
                     }
                 }
             }
@@ -214,6 +218,7 @@ class PrinterService : Service() {
                                 mIsConnected = true
                                 var2.onSucceed()
                             }
+
                             else -> {
                                 mIsConnected = false
                                 var2.onFailed("Write data failed ,please check the device connected")
@@ -238,6 +243,7 @@ class PrinterService : Service() {
                             mIsConnected = true
                             var1.onSucceed()
                         }
+
                         else -> {
                             mIsConnected = false
                             var1.onFailed("Bluetooth is no connected,please connect first")
