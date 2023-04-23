@@ -186,22 +186,6 @@ class PrinterService : Service() {
                                 it.startDiscovery()
                                 val filter = IntentFilter("android.bluetooth.device.action.FOUND")
                                 registerReceiver(mReceiver, filter)
-                                val pairedDevice = it.bondedDevices
-                                if (!pairedDevice.isNullOrEmpty()) {
-                                    val iterator = pairedDevice.iterator()
-                                    while (iterator.hasNext()) {
-                                        val device = iterator.next()
-                                        val deviceInfo = DeviceInfo()
-                                        deviceInfo.deviceName = device.name
-                                        deviceInfo.deviceAddress = device.address
-                                        mBond?.add(deviceInfo)
-                                    }
-                                } else {
-                                    PrintToastUtils.show(
-                                        "该设备没有蓝牙，不支持此功能",
-                                        this@PrinterService
-                                    )
-                                }
                             } else {
                                 PrintToastUtils.show(
                                     "没有蓝牙连接权限，请退出重试",
@@ -215,22 +199,6 @@ class PrinterService : Service() {
                             it.startDiscovery()
                             val filter = IntentFilter("android.bluetooth.device.action.FOUND")
                             registerReceiver(mReceiver, filter)
-                            val pairedDevice = it.bondedDevices
-                            if (!pairedDevice.isNullOrEmpty()) {
-                                val iterator = pairedDevice.iterator()
-                                while (iterator.hasNext()) {
-                                    val device = iterator.next()
-                                    val deviceInfo = DeviceInfo()
-                                    deviceInfo.deviceName = device.name
-                                    deviceInfo.deviceAddress = device.address
-                                    mBond?.add(deviceInfo)
-                                }
-                            } else {
-                                PrintToastUtils.show(
-                                    "该设备没有蓝牙，不支持此功能",
-                                    this@PrinterService
-                                )
-                            }
                         }
 
                     } else {
