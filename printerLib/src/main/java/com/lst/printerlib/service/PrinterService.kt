@@ -9,27 +9,24 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
-import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import com.lst.printerlib.DeviceInfo
-import com.lst.printerlib.utils.PrinterDev
-import com.lst.printerlib.utils.ReturnMessage
 import com.lst.printerlib.printerface.DeviceFoundCallback
 import com.lst.printerlib.printerface.IMyBinder
 import com.lst.printerlib.printerface.ProcessData
 import com.lst.printerlib.printerface.TaskCallback
+import com.lst.printerlib.utils.PrintToastUtils
+import com.lst.printerlib.utils.PrinterDev
+import com.lst.printerlib.utils.ReturnMessage
 import com.lst.printerlib.utils.RoundQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.*
-import android.R.attr.name
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import com.lst.printerlib.utils.PrintToastUtils
+import java.util.Arrays
 
 
 class PrinterService : Service() {
@@ -60,7 +57,7 @@ class PrinterService : Service() {
 
     inner class MyBinder : Binder(), IMyBinder {
         private var mBluetoothAdapter: BluetoothAdapter? = null
-        private var mFond: MutableList<DeviceInfo>? = null
+        private var mFond: MutableList<DeviceInfo> = arrayListOf()
         private var mBond: MutableList<DeviceInfo>? = null
         private var mPortType: PrinterDev.PortType? = null
         private val mReceiver = object : BroadcastReceiver() {
@@ -70,17 +67,23 @@ class PrinterService : Service() {
                         val device =
                             it.getParcelableExtra<BluetoothDevice>("android.bluetooth.device.extra.DEVICE")
                                 ?: return
-                        if (!device.name.isNullOrEmpty()) {
-                            mFond?.forEach { found ->
-                                if (found.deviceAddress == device.address) {
-                                    return
+                        if (ActivityCompat.checkSelfPermission(
+                                this@PrinterService,
+                                Manifest.permission.BLUETOOTH_CONNECT
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            if (!device.name.isNullOrEmpty()) {
+                                mFond.forEach { found ->
+                                    if (found.deviceAddress == device.address) {
+                                        return
+                                    }
                                 }
+                                val deviceInfo = DeviceInfo()
+                                deviceInfo.deviceName = device.name
+                                deviceInfo.deviceAddress = device.address
+                                mFond.add(deviceInfo)
+                                mDeviceFoundCallback?.deviceFoundCallback(deviceInfo)
                             }
-                            val deviceInfo = DeviceInfo()
-                            deviceInfo.deviceName = device.name
-                            deviceInfo.deviceAddress = device.address
-                            mFond?.add(deviceInfo)
-                            mDeviceFoundCallback?.deviceFoundCallback(deviceInfo)
                         }
                     }
                 }
@@ -204,8 +207,15 @@ class PrinterService : Service() {
         }
 
         override fun getBtAvailableDevice(): MutableList<DeviceInfo> {
-            this.mBluetoothAdapter?.cancelDiscovery()
-            return this.mFond!!
+            if (ActivityCompat.checkSelfPermission(
+                    this@PrinterService,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                this.mBluetoothAdapter?.cancelDiscovery()
+                return this.mFond
+            }
+            return arrayListOf()
         }
 
         override fun write(var1: ByteArray?, var2: TaskCallback) {
@@ -282,8 +292,14 @@ class PrinterService : Service() {
 
         override fun cancelDiscover() {
             mBluetoothAdapter?.let {
-                if (it.isDiscovering) {
-                    it.cancelDiscovery()
+                if (ActivityCompat.checkSelfPermission(
+                        this@PrinterService,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    if (it.isDiscovering) {
+                        it.cancelDiscovery()
+                    }
                 }
             }
         }
